@@ -24,7 +24,11 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     JWT Authentication Middleware
     
     Validates JWT tokens from Authorization header and sets user context
-    in request state for protected routes.
+    in request state for all routes except those explicitly excluded.
+    
+    By default, all routes require authentication except those listed in excluded_paths.
+    The middleware extracts user information from JWT tokens and makes it available
+    in request.state for use in route handlers.
     """
     
     def __init__(
@@ -32,28 +36,23 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         secret_key: Optional[str] = None,
         algorithm: str = "HS256",
-        protected_paths: Optional[list] = None,
         excluded_paths: Optional[list] = None
     ):
         super().__init__(app)
         self.secret_key = secret_key or config.AUTH_SECRET_KEY
         self.algorithm = algorithm
-        # Default protected paths - customize as needed
-        self.protected_paths = protected_paths or [
-            "/api/v1/users",
-            "/api/v1/tasks",
-            "/api/v1/projects",
-            "/api/v1/ai-suggestions"
-        ]
         # Paths that don't require authentication
         self.excluded_paths = excluded_paths or [
+            "/",
             "/health-check",
             "/docs",
             "/redoc",
             "/openapi.json",
             "/api/v1/auth/login",
             "/api/v1/auth/register",
-            "/api/v1/auth/refresh"
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/create-admin",
+            "/api/v1/auth/public"
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -89,17 +88,13 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         
         # Check excluded paths first (no auth required)
         for excluded_path in self.excluded_paths:
-            if path.startswith(excluded_path):
+            # For exact matches or if path starts with excluded_path followed by '/' or end of string
+            if path == excluded_path or (path.startswith(excluded_path) and 
+                                       (len(path) == len(excluded_path) or path[len(excluded_path)] == '/')):
                 return False
         
-        # Check if path is in protected paths
-        for protected_path in self.protected_paths:
-            if path.startswith(protected_path):
-                return True
-        
-        # Default behavior - you can customize this
-        # Return True to require auth by default, False to allow by default
-        return False
+        # All other paths require authentication by default
+        return True
 
     def _extract_token(self, request: Request) -> Optional[str]:
         """Extract JWT token from Authorization header"""

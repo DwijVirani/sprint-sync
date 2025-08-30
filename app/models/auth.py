@@ -20,4 +20,5 @@ class TokenResponse(BaseModel):
     """Token response model."""
 
     access_token: str = Field(..., description="The access token", example="access_token")
-    refresh_token: str = Field(..., description="The refresh token", example="refresh_token")
+    user: dict = Field(..., description="The user information", example={"id": 1, "email": "user@example.com"})
+    token_type: str = Field(..., description="The type of the token", example="bearer")
