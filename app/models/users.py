@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import List
 
 class ProfileResponse(BaseModel):
     """User profile response model."""
@@ -22,4 +23,4 @@ class UserResponse(BaseModel):
 class UserListResponse(BaseModel):
     """Response model for a list of users."""
 
-    users: list[UserResponse]
+    users: List[UserResponse]
