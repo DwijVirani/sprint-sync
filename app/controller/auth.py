@@ -1,12 +1,12 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.entities import User
 from app.models.auth import TokenResponse
 from app.repository.auth import AuthRepository
-from app.utils.password import hash_password, validate_password_strength
+from app.utils.password import validate_password_strength
 
 
 class AuthController:
@@ -18,11 +18,18 @@ class AuthController:
         """Get user by ID"""
         return self.auth_repository.get_user(user_id)
 
-    def create_user(self, email: str, password: str, first_name: str, last_name: str, 
-                   is_admin: bool = False, avatar: str = None) -> User:
+    def create_user(
+        self,
+        email: str,
+        password: str,
+        first_name: str,
+        last_name: str,
+        is_admin: bool = False,
+        avatar: str = None,
+    ) -> User:
         """
         Create a new user with password validation and hashing
-        
+
         Args:
             email: User's email address
             password: Plain text password
@@ -30,10 +37,10 @@ class AuthController:
             last_name: User's last name
             is_admin: Whether user has admin privileges
             avatar: Optional avatar URL
-            
+
         Returns:
             User: Created user object
-            
+
         Raises:
             HTTPException: If email exists or password is invalid
         """
@@ -41,29 +48,29 @@ class AuthController:
         if self.auth_repository.email_exists(email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+                detail="Email already registered",
             )
-        
+
         # Validate password strength
         is_valid, errors = validate_password_strength(password)
         if not is_valid:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Password validation failed: {', '.join(errors)}"
+                detail=f"Password validation failed: {', '.join(errors)}",
             )
-        
+
         # Create user with hashed password
         user = User(
             email=email,
             first_name=first_name,
             last_name=last_name,
             is_admin=is_admin,
-            avatar=avatar
+            avatar=avatar,
         )
-        
+
         # Set password (this will hash it automatically)
         user.set_password(password)
-        
+
         # Save to database
         return self.auth_repository.create_user(user)
 
@@ -74,11 +81,11 @@ class AuthController:
     def authenticate_user(self, email: str, password: str) -> Optional[User]:
         """
         Authenticate user with email and password
-        
+
         Args:
             email: User's email address
             password: Plain text password
-            
+
         Returns:
             User: Authenticated user or None if invalid
         """

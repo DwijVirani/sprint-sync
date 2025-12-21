@@ -95,3 +95,21 @@ docker-up: ## Start services with Docker Compose
 
 dev: ## Run the application in development mode
 	$(UV) run uvicorn $(APP_MODULE) --host $(HOST) --port $(PORT) --reload
+
+lint: ## Run linting with ruff
+	@echo "$(BLUE)Running linter...$(NC)"
+	$(UV) run ruff check .
+
+lint-fix: ## Run linting with auto-fix
+	@echo "$(BLUE)Running linter with auto-fix...$(NC)"
+	$(UV) run ruff check --fix .
+
+format: ## Format code with black and isort
+	@echo "$(BLUE)Formatting code...$(NC)"
+	$(UV) run black .
+	$(UV) run isort .
+
+format-check: ## Check code formatting without making changes
+	@echo "$(BLUE)Checking code formatting...$(NC)"
+	$(UV) run black --check .
+	$(UV) run isort --check-only .

@@ -5,13 +5,14 @@ This middleware handles JWT token validation and user authentication
 for protected routes in the SprintSync application.
 """
 
+import logging
+from typing import Any, Callable, Dict, Optional
+
 import jwt
-from typing import Optional, Dict, Any, Callable
-from fastapi import Request, Response, HTTPException, status
+from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-import logging
 
 from app.utils.config import Config
 
@@ -22,21 +23,21 @@ config = Config()
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     """
     JWT Authentication Middleware
-    
+
     Validates JWT tokens from Authorization header and sets user context
     in request state for all routes except those explicitly excluded.
-    
+
     By default, all routes require authentication except those listed in excluded_paths.
     The middleware extracts user information from JWT tokens and makes it available
     in request.state for use in route handlers.
     """
-    
+
     def __init__(
         self,
         app: ASGIApp,
         secret_key: Optional[str] = None,
         algorithm: str = "HS256",
-        excluded_paths: Optional[list] = None
+        excluded_paths: Optional[list] = None,
     ):
         super().__init__(app)
         self.secret_key = secret_key or config.AUTH_SECRET_KEY
@@ -52,57 +53,61 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
             "/api/v1/auth/create-admin",
-            "/api/v1/auth/public"
+            "/api/v1/auth/public",
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process the request and validate JWT if required"""
-        
+
         # Check if path requires authentication
         if not self._requires_auth(request.url.path):
             return await call_next(request)
-        
+
         # Extract and validate JWT token
         token = self._extract_token(request)
         if not token:
             return self._unauthorized_response("Missing authorization token")
-        
+
         # Decode and validate token
         user_data = self._decode_token(token)
         if not user_data:
             return self._unauthorized_response("Invalid or expired token")
-        
+
         # Set user context in request state
         request.state.current_user = user_data
         request.state.user_id = user_data.get("user_id") or user_data.get("sub")
         request.state.user_email = user_data.get("email")
-        
-        logger.info(f"Authenticated user {request.state.user_id} for {request.url.path}")
-        
+
+        logger.info(
+            f"Authenticated user {request.state.user_id} for {request.url.path}"
+        )
+
         # Continue with the request
         response = await call_next(request)
         return response
 
     def _requires_auth(self, path: str) -> bool:
         """Check if the given path requires authentication"""
-        
+
         # Check excluded paths first (no auth required)
         for excluded_path in self.excluded_paths:
             # For exact matches or if path starts with excluded_path followed by '/' or end of string
-            if path == excluded_path or (path.startswith(excluded_path) and 
-                                       (len(path) == len(excluded_path) or path[len(excluded_path)] == '/')):
+            if path == excluded_path or (
+                path.startswith(excluded_path)
+                and (len(path) == len(excluded_path) or path[len(excluded_path)] == "/")
+            ):
                 return False
-        
+
         # All other paths require authentication by default
         return True
 
     def _extract_token(self, request: Request) -> Optional[str]:
         """Extract JWT token from Authorization header"""
         auth_header = request.headers.get("authorization")
-        
+
         if not auth_header:
             return None
-        
+
         # Support both "Bearer token" and "token" formats
         if auth_header.startswith("Bearer "):
             return auth_header.split(" ", 1)[1]
@@ -116,17 +121,13 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         """Decode and validate JWT token"""
         try:
             # Decode JWT token
-            payload = jwt.decode(
-                token, 
-                self.secret_key, 
-                algorithms=[self.algorithm]
-            )
-            
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+
             # Validate required fields
             if not payload.get("user_id") and not payload.get("sub"):
                 logger.warning("JWT token missing user_id/sub field")
                 return None
-            
+
             # Return user data
             return {
                 "user_id": payload.get("user_id") or payload.get("sub"),
@@ -134,9 +135,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 "name": payload.get("name"),
                 "is_admin": payload.get("is_admin", False),
                 "exp": payload.get("exp"),
-                "iat": payload.get("iat")
+                "iat": payload.get("iat"),
             }
-            
+
         except jwt.ExpiredSignatureError:
             logger.warning("JWT token has expired")
             return None
@@ -152,11 +153,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         logger.warning(f"Unauthorized access attempt: {message}")
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "error": "Unauthorized",
-                "message": message,
-                "code": "AUTH_001"
-            }
+            content={"error": "Unauthorized", "message": message, "code": "AUTH_001"},
         )
 
 
@@ -164,7 +161,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     """
     Dependency function to get current authenticated user from request state
-    
+
     Usage in FastAPI route:
     @app.get("/protected")
     async def protected_route(request: Request):
@@ -173,7 +170,7 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
             raise HTTPException(status_code=401, detail="Not authenticated")
         return {"user": user}
     """
-    if hasattr(request.state, 'current_user'):
+    if hasattr(request.state, "current_user"):
         return request.state.current_user
     return None
 
@@ -181,7 +178,7 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
 def get_current_user_id(request: Request) -> Optional[str]:
     """
     Dependency function to get current user ID from request state
-    
+
     Usage:
     @app.get("/my-data")
     async def get_my_data(request: Request):
@@ -190,7 +187,7 @@ def get_current_user_id(request: Request) -> Optional[str]:
             raise HTTPException(status_code=401, detail="Not authenticated")
         # Use user_id to fetch user-specific data
     """
-    if hasattr(request.state, 'user_id'):
+    if hasattr(request.state, "user_id"):
         return str(request.state.user_id)
     return None
 
@@ -198,7 +195,7 @@ def get_current_user_id(request: Request) -> Optional[str]:
 def require_auth(request: Request) -> Dict[str, Any]:
     """
     Dependency that raises HTTPException if user is not authenticated
-    
+
     Usage:
     @app.get("/protected")
     async def protected_route(user: dict = Depends(require_auth)):
@@ -209,7 +206,7 @@ def require_auth(request: Request) -> Dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
     return user
 
@@ -217,7 +214,7 @@ def require_auth(request: Request) -> Dict[str, Any]:
 def require_admin(request: Request) -> Dict[str, Any]:
     """
     Dependency that requires admin privileges
-    
+
     Usage:
     @app.delete("/admin/users/{user_id}")
     async def delete_user(user_id: int, admin: dict = Depends(require_admin)):
@@ -226,7 +223,6 @@ def require_admin(request: Request) -> Dict[str, Any]:
     user = require_auth(request)
     if not user.get("is_admin", False):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
     return user

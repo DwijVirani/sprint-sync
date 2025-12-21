@@ -11,6 +11,7 @@ DATABASE_URL = config.get_db_url()
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def get_session() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:

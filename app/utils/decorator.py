@@ -1,15 +1,8 @@
 import inspect
+from collections.abc import Coroutine
 from enum import Enum
 from functools import wraps
-from typing import (
-    Any,
-    Callable,
-    Concatenate,
-    ParamSpec,
-    TypeVar,
-    cast,
-)
-from collections.abc import Coroutine
+from typing import Any, Callable, Concatenate, ParamSpec, TypeVar, cast
 
 from fastapi import HTTPException, Request
 
@@ -32,7 +25,11 @@ class Role(str, Enum):
 
 
 def check_roles(user_role: str, allowed_roles: list[Role]) -> None:
-    user_roles = [role.lower() for role in user_role] if isinstance(user_role, list) else [user_role.lower()]
+    user_roles = (
+        [role.lower() for role in user_role]
+        if isinstance(user_role, list)
+        else [user_role.lower()]
+    )
     allowed_role_values = [r.value.lower() for r in allowed_roles]
     if not any(role in allowed_role_values for role in user_roles):
         raise HTTPException(
@@ -54,7 +51,11 @@ def requires_role(roles: list[Role]) -> Callable[[FuncUnion[P, R]], FuncUnion[P,
         async def async_wrapper(
             request: Request, *args: P.args, **kwargs: P.kwargs
         ) -> R:
-            if hasattr(request.state, 'user') and request.state.user and request.state.user["role"]:
+            if (
+                hasattr(request.state, "user")
+                and request.state.user
+                and request.state.user["role"]
+            ):
                 user_role = request.state.user["role"]
                 check_roles(user_role, roles)
 
@@ -65,7 +66,11 @@ def requires_role(roles: list[Role]) -> Callable[[FuncUnion[P, R]], FuncUnion[P,
 
         @wraps(func)
         def sync_wrapper(request: Request, *args: P.args, **kwargs: P.kwargs) -> R:
-            if hasattr(request.state, 'user') and request.state.user and request.state.user["role"]:
+            if (
+                hasattr(request.state, "user")
+                and request.state.user
+                and request.state.user["role"]
+            ):
                 user_role = request.state.user["role"]
                 check_roles(user_role, roles)
 

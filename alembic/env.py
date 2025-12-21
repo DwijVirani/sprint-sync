@@ -1,7 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -26,8 +25,8 @@ if config.config_file_name is not None:
 # ... etc.
 
 try:
-    from app.utils.config import Config
     from app.db.entities import Base
+    from app.utils.config import Config
 
     target_metadata = Base.metadata
     database_url = Config().get_db_url()
@@ -36,15 +35,19 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import app modules: {e}")
     print("Using database URL from environment variable DB_URL")
-    
+
     # Fallback to environment variable
     import os
+
     database_url = os.getenv("DB_URL")
     if not database_url:
-        raise ValueError("DB_URL environment variable is required when app modules are not available")
-    
+        raise ValueError(
+            "DB_URL environment variable is required when app modules are not available"
+        )
+
     config.set_main_option("sqlalchemy.url", database_url)
     target_metadata = None
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -84,9 +87,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

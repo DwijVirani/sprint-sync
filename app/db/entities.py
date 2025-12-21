@@ -1,12 +1,11 @@
-from pydantic import BaseModel
-import bcrypt
-
-from sqlalchemy import Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
-
 from typing import TypeVar
 
-Base=declarative_base()
+import bcrypt
+from pydantic import BaseModel
+from sqlalchemy import Boolean, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
+
+Base = declarative_base()
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -20,6 +19,7 @@ def from_entity(entity: object, model_class: type[T]) -> T:
         if hasattr(entity, field)
     }
     return model_class.model_validate(data)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -35,32 +35,32 @@ class User(Base):
     def set_password(self, password: str) -> None:
         """
         Hash and set the user's password
-        
+
         Args:
             password: Plain text password to hash and store
         """
         # Generate salt and hash the password
         salt = bcrypt.gensalt()
-        password_bytes = password.encode('utf-8')
+        password_bytes = password.encode("utf-8")
         hashed = bcrypt.hashpw(password_bytes, salt)
-        self.password_hash = hashed.decode('utf-8')
+        self.password_hash = hashed.decode("utf-8")
 
     def verify_password(self, password: str) -> bool:
         """
         Verify a password against the stored hash
-        
+
         Args:
             password: Plain text password to verify
-            
+
         Returns:
             bool: True if password matches, False otherwise
         """
         if not self.password_hash:
             return False
-            
+
         try:
-            password_bytes = password.encode('utf-8')
-            hash_bytes = self.password_hash.encode('utf-8')
+            password_bytes = password.encode("utf-8")
+            hash_bytes = self.password_hash.encode("utf-8")
             return bcrypt.checkpw(password_bytes, hash_bytes)
         except Exception:
             return False
@@ -79,8 +79,9 @@ class User(Base):
             "last_name": self.last_name,
             "full_name": self.full_name,
             "avatar": self.avatar,
-            "is_admin": self.is_admin
+            "is_admin": self.is_admin,
         }
+
 
 class AiSuggestion(Base):
     __tablename__ = "ai_suggestions"
@@ -90,11 +91,13 @@ class AiSuggestion(Base):
     prompt: Mapped[str] = mapped_column(String)
     response: Mapped[str] = mapped_column(String)
 
+
 class AiPrompts(Base):
     __tablename__ = "ai_prompts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     prompt: Mapped[str] = mapped_column(String)
+
 
 class Task(Base):
     __tablename__ = "tasks"

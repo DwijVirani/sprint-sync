@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Dict, Any
 import logging
 import time
+from typing import Any, Dict
 
-from app.utils.simple_logging import log_exception
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 logger = logging.getLogger("sprintsync.routes.test")
@@ -20,7 +19,7 @@ async def test_success():
 async def test_error():
     """Test endpoint that raises an error."""
     logger.info("Test error endpoint called", extra={"endpoint": "test_error"})
-    
+
     # This will trigger our error logging
     raise HTTPException(status_code=400, detail="This is a test error")
 
@@ -29,7 +28,7 @@ async def test_error():
 async def test_exception():
     """Test endpoint that raises an unhandled exception."""
     logger.info("Test exception endpoint called", extra={"endpoint": "test_exception"})
-    
+
     # This will trigger our exception logging middleware
     raise ValueError("This is a test unhandled exception")
 
@@ -37,15 +36,15 @@ async def test_exception():
 @router.post("/test/data")
 async def test_post_data(data: Dict[str, Any]):
     """Test POST endpoint with data."""
-    logger.info("Test POST endpoint called", extra={
-        "endpoint": "test_post_data",
-        "data_keys": list(data.keys())
-    })
-    
+    logger.info(
+        "Test POST endpoint called",
+        extra={"endpoint": "test_post_data", "data_keys": list(data.keys())},
+    )
+
     return {
         "message": "Data received successfully",
         "received_keys": list(data.keys()),
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
 
@@ -53,9 +52,10 @@ async def test_post_data(data: Dict[str, Any]):
 async def test_slow_endpoint():
     """Test endpoint that takes time (for latency testing)."""
     logger.info("Slow endpoint called", extra={"endpoint": "test_slow"})
-    
+
     # Simulate some processing time
     import asyncio
+
     await asyncio.sleep(2)
-    
+
     return {"message": "Slow operation completed", "timestamp": time.time()}

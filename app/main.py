@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.middleware.logging import LoggingMiddleware
 from app.middleware.authorization import JWTAuthMiddleware
-from app.utils.simple_logging import setup_logging
-from app.routes.test import router as test_router
+from app.middleware.logging import LoggingMiddleware
 from app.routes.auth import router as auth_router
+from app.routes.test import router as test_router
+from app.utils.simple_logging import setup_logging
 
 # Setup structured logging
 setup_logging()
@@ -13,7 +13,7 @@ setup_logging()
 app = FastAPI(
     title="SprintSync API",
     description="A modern project management and sprint tracking application",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Add middlewares in order (last added = first executed)
@@ -32,13 +32,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to SprintSync API"}
 
+
 @app.get("/health-check")
 async def health_check():
     return {"status": "Healthy"}
+
 
 # Include routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["authentication"])
