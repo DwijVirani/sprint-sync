@@ -1,8 +1,7 @@
-from typing import Any, Optional
-import jwt
 from datetime import datetime, timedelta
+from typing import Any, Optional
 
-from sqlalchemy import select
+import jwt
 from sqlalchemy.orm import Session
 
 from app.db.entities import User
@@ -10,6 +9,7 @@ from app.models.auth import TokenResponse
 from app.utils.config import Config
 
 config = Config()
+
 
 class AuthRepository:
     def __init__(self, session: Session):
@@ -25,24 +25,24 @@ class AuthRepository:
         self.session.commit()
         self.session.refresh(user)
         return user
-    
+
     def create_token(self, token_data: dict[str, Any]) -> TokenResponse:
         """Create JWT token for user"""
         # Add expiration and issued at timestamps
         token_payload = {
             **token_data,
             "exp": datetime.utcnow() + timedelta(hours=24),
-            "iat": datetime.utcnow()
+            "iat": datetime.utcnow(),
         }
-        
+
         # Generate JWT token
-        access_token = jwt.encode(token_payload, config.AUTH_SECRET_KEY, algorithm="HS256")
-        
+        access_token = jwt.encode(
+            token_payload, config.AUTH_SECRET_KEY, algorithm="HS256"
+        )
+
         # Return token response
         return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user=token_data
+            access_token=access_token, token_type="bearer", user=token_data
         )
 
     def get_user_by_email(self, email: str) -> Optional[User]:
